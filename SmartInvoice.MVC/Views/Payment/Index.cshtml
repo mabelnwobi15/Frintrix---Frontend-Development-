@@ -1,15 +1,11 @@
-﻿@model List<SmartInvoice.MVC.Models.PaymentListViewModel>
+﻿@model List<SmartInvoice.MVC.Models.PaymentViewModel>
 @{
     ViewData["Title"] = "Payments";
 }
 
-<!-- HEADER -->
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="fw-bold">Payments</h2>
-        <small class="text-muted">Track and record all payments</small>
-    </div>
-    <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#paymentModal">
+    <h2 class="fw-bold">Payments</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#paymentModal">
         + Record Payment
     </button>
 </div>
@@ -22,7 +18,6 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
-
 @if (TempData["Success"] != null)
 {
     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -31,34 +26,23 @@
     </div>
 }
 
-<!-- SEARCH -->
-<div class="input-group mb-3">
-    <span class="input-group-text bg-primary text-white"><i class="bi bi-search"></i></span>
-    <input type="text" id="paymentSearch" class="form-control" placeholder="Search payments...">
-</div>
-
 <!-- PAYMENTS TABLE -->
-<div class="card shadow-sm">
+<div class="card shadow-sm mb-4">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
                     <th>Date</th>
-                
                     <th>Invoice</th>
                     <th>Amount</th>
                 </tr>
             </thead>
-            <tbody id="paymentTable">
+            <tbody>
                 @foreach (var p in Model)
                 {
                     <tr>
                         <td>@p.PaymentDate.ToString("MMM dd, yyyy")</td>
-                        
-                        <td>
-                            INV-@p.InvoiceId
-                            <span class="badge bg-success ms-1">paid</span>
-                        </td>
+                        <td>INV-@p.InvoiceId</td>
                         <td class="text-success fw-bold">R @p.Amount.ToString("0.00")</td>
                     </tr>
                 }
@@ -73,32 +57,17 @@
         <div class="modal-content p-4">
             <h5 class="mb-3 fw-bold">Record Payment</h5>
 
-            <form method="post" action="/Payment/Create">
-
-                <!-- CLIENT -->
+            <form method="post" asp-action="Create">
+                <!-- INVOICE ID -->
                 <div class="mb-3">
-                    <label for="clientSelect" class="form-label">Customer</label>
-                    <select id="clientSelect" class="form-select">
-                        <option value="">Select a customer</option>
-                        @foreach (var c in ViewBag.Clients)
-                        {
-                            <option value="@c.Id">@c.Name</option>
-                        }
-                    </select>
-                </div>
-
-                <!-- INVOICE -->
-                <div class="mb-3">
-                    <label for="invoiceSelect" class="form-label">Invoice</label>
-                    <select name="InvoiceId" id="invoiceSelect" class="form-select">
-                        <option value="">Select an invoice</option>
-                    </select>
+                    <label for="invoiceId" class="form-label">Invoice ID</label>
+                    <input type="number" id="invoiceId" name="InvoiceId" class="form-control" placeholder="Enter Invoice ID" required />
                 </div>
 
                 <!-- AMOUNT -->
                 <div class="mb-3">
-                    <label for="amountInput" class="form-label">Amount (R)</label>
-                    <input id="amountInput" name="Amount" type="number" step="0.01" class="form-control" placeholder="Enter payment amount" />
+                    <label for="amount" class="form-label">Amount (R)</label>
+                    <input type="number" step="0.01" id="amount" name="Amount" class="form-control" placeholder="Enter Amount" required />
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100 fw-bold">Record Payment</button>
@@ -106,34 +75,3 @@
         </div>
     </div>
 </div>
-
-<!-- SCRIPTS -->
-<script>
-    // SEARCH PAYMENTS
-    document.getElementById("paymentSearch").addEventListener("keyup", function () {
-        let filter = this.value.toLowerCase();
-        document.querySelectorAll("#paymentTable tr").forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(filter) ? "" : "none";
-        });
-    });
-
-    // LOAD INVOICES ON CLIENT SELECT
-    document.getElementById("clientSelect").addEventListener("change", async function () {
-        let clientId = this.value;
-        let invoiceDropdown = document.getElementById("invoiceSelect");
-        invoiceDropdown.innerHTML = '<option value="">Select an invoice</option>';
-        if (!clientId) return;
-
-        try {
-            let response = await fetch(`/Invoice/GetByClient?clientId=${clientId}`);
-            if (!response.ok) throw new Error('Failed to fetch invoices');
-            let invoices = await response.json();
-
-            invoices.forEach(inv => {
-                invoiceDropdown.innerHTML += `<option value="${inv.id}">INV${inv.id} | R${inv.totalAmount.toFixed(2)}</option>`;
-            });
-        } catch (err) {
-            console.error(err);
-        }
-    });
-</script>

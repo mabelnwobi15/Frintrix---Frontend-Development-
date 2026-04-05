@@ -18,6 +18,13 @@ builder.Services.AddHttpClient("API", client =>
     client.BaseAddress = new Uri("http://localhost:5054/");
 });
 
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler =
+            System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
+
 // Register your services
 builder.Services.AddScoped<SmartInvoice.MVC.Services.ClientService>();
 builder.Services.AddScoped<SmartInvoice.MVC.Services.InvoiceService>();

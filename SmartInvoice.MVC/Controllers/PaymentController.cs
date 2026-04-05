@@ -1,42 +1,46 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using SmartInvoice.MVC.Models;
 using SmartInvoice.MVC.Services;
-using System.Security.Claims;
 
 namespace SmartInvoice.MVC.Controllers
 {
     public class PaymentController : Controller
     {
         private readonly PaymentService _paymentService;
-        private readonly ClientService _clientService;
 
-        public PaymentController(PaymentService paymentService, ClientService clientService)
+        public PaymentController(PaymentService paymentService)
         {
             _paymentService = paymentService;
-            _clientService = clientService;
         }
 
+        // Display all payments
         public async Task<IActionResult> Index()
         {
-            var clients = await _clientService.GetClients();
-            ViewBag.Clients = clients;
+            var paymentsList = await _paymentService.GetPaymentsByUser(); // returns List<PaymentListViewModel>
 
-            // Get payments for logged-in user
-            var payments = await _paymentService.GetPaymentsByUser();
+            // Map to PaymentViewModel
+            var payments = paymentsList.Select(p => new PaymentViewModel
+            {
+                Id = p.Id,
+                InvoiceId = p.InvoiceId,
+                Amount = p.Amount,
+                PaymentDate = p.PaymentDate,
+            }).ToList();
 
-            return View(payments);
+            return View(payments); // now this matches @model List<PaymentViewModel>
         }
 
-
-
-
+        // Create a new payment
         [HttpPost]
         public async Task<IActionResult> Create(PaymentViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                TempData["Error"] = "Invalid form data";
+                var errors = string.Join(", ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+
+                TempData["Error"] = "Invalid form data: " + errors;
                 return RedirectToAction("Index");
             }
 
