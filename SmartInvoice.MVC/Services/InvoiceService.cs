@@ -10,7 +10,9 @@ namespace SmartInvoice.MVC.Services
         private readonly HttpClient _http;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public InvoiceService(IHttpClientFactory httpFactory, IHttpContextAccessor httpContextAccessor)
+        public InvoiceService(
+            IHttpClientFactory httpFactory,
+            IHttpContextAccessor httpContextAccessor)
         {
             _http = httpFactory.CreateClient("API");
             _httpContextAccessor = httpContextAccessor;
@@ -18,26 +20,55 @@ namespace SmartInvoice.MVC.Services
 
         private void AddAuthHeader()
         {
-            var token = _httpContextAccessor.HttpContext.Session.GetString("JWToken");
+            var token = _httpContextAccessor.HttpContext?
+                .Session.GetString("JWToken");
+
+            _http.DefaultRequestHeaders.Authorization = null;
+
             if (!string.IsNullOrEmpty(token))
-                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            {
+                _http.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+            }
         }
 
         public async Task<List<InvoiceViewModel>> GetInvoices()
         {
             AddAuthHeader();
-            return await _http.GetFromJsonAsync<List<InvoiceViewModel>>("api/invoices");
+
+            var response = await _http.GetAsync("api/invoices");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new List<InvoiceViewModel>();
+            }
+
+            var invoices = await response.Content
+                .ReadFromJsonAsync<List<InvoiceViewModel>>();
+
+            return invoices ?? new List<InvoiceViewModel>();
         }
 
         public async Task<bool> CreateInvoice(CreateInvoiceViewModel invoice)
         {
             AddAuthHeader();
-            var response = await _http.PostAsJsonAsync("api/invoices", new
+
+            var request = new
             {
                 ClientId = invoice.ClientId,
                 DueDate = invoice.DueDate,
-                Items = invoice.Items.Select(i => new { i.Description, i.Quantity, i.Price }).ToList()
-            });
+                Items = invoice.Items.Select(i => new
+                {
+                    i.Description,
+                    i.Quantity,
+                    i.Price
+                }).ToList()
+            };
+
+            var response = await _http.PostAsJsonAsync(
+                "api/invoices",
+                request
+            );
 
             return response.IsSuccessStatusCode;
         }
@@ -46,7 +77,9 @@ namespace SmartInvoice.MVC.Services
         {
             AddAuthHeader();
 
-            var invoices = await _http.GetFromJsonAsync<List<InvoiceViewModel>>("api/invoices");
+            var invoices = await _http.GetFromJsonAsync<List<InvoiceViewModel>>(
+                "api/invoices"
+            );
 
             return invoices?.FirstOrDefault(i => i.Id == id);
         }
