@@ -30,7 +30,7 @@ builder.Services.AddSession(options =>
 // Register HttpClient for API
 builder.Services.AddHttpClient("API", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5054/");
+    client.BaseAddress = new Uri("https://fintrix-api.onrender.com/");
 });
 
 builder.Services.AddControllers()
