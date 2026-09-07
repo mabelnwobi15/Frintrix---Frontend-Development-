@@ -1,22 +1,7 @@
-
-
 var builder = WebApplication.CreateBuilder(args);
-
-
 
 // Add services
 builder.Services.AddControllersWithViews();
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("FrontendPolicy", policy =>
-    {
-        policy
-            .WithOrigins("https://fintrix-frontend.onrender.com")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
 
 // Add session support (JWT storage)
 builder.Services.AddDistributedMemoryCache();
@@ -27,7 +12,18 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-// Register HttpClient for API
+// Retrieve backend API URL from Render environment variable or fall back to local URL
+var apiBaseUrl = builder.Configuration["BACKEND_URL"] 
+    ?? builder.Configuration["API_BASE_URL"] 
+    ?? "https://fintrix-api.onrender.com/";
+
+// Ensure trailing slash for HttpClient route matching
+if (!apiBaseUrl.EndsWith("/"))
+{
+    apiBaseUrl += "/";
+}
+
+// Register HttpClient for API communication
 builder.Services.AddHttpClient("API", client =>
 {
     client.BaseAddress = new Uri("https://fintrix-api.onrender.com/");
@@ -40,7 +36,7 @@ builder.Services.AddControllers()
             System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 
-// Register your services
+// Register application services
 builder.Services.AddScoped<SmartInvoice.MVC.Services.ClientService>();
 builder.Services.AddScoped<SmartInvoice.MVC.Services.InvoiceService>();
 builder.Services.AddScoped<SmartInvoice.MVC.Services.PaymentService>();
@@ -62,8 +58,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseSession();       // <-- session must come before authorization
-app.UseAuthorization(); // keep authorization middleware
+app.UseSession();
+app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
